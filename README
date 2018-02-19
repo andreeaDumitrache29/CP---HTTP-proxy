@@ -1,0 +1,61 @@
+Dumitrache Daniela Andreea
+321CB
+Protocoale de comunicatie - Tema 3
+
+	In implementarea temei am folosit laboratoarele de dns, http si tcp.
+De asemenea, am construit o structura pentru a simula mapari de tip (nume fisier,
+comanda asociata) pentru a sti ce fisier corespunde fiecarei comenzi.
+
+	In functia main se stabileste intai conexiunea cu clientii folosind portul
+primit ca argument si se realizeaza multiplexarea comunicarii folosind functia select. 
+In cazul in care apar erori la apelul functiilor socket, bind, select sau accept se va 
+afisa un mesaj corespunzator si se va incheia executia programului deoarece nu s-a putut 
+realiza conexiunea.
+
+	Am declarat un vector in care se vor retine toate structurile de tip TCache create 
+de-a lungul executiei programului, retinandu-se astfel numele tuturor fisierelor 
+create si comenzile asociate lor.
+
+	Intr-o bucla de primire mesaje se efectueaza select si se verifica multimea
+descriptorilor intorsi: daca am primit un mesaj pe o noua conexiune apelam accept
+si adaugam noul socket intors de accept la multimea descriptorilor de citire;
+daca am primit date pe unul dintre socketii pe care vorbesc cu clientii atunci 
+apelam recv si verificam rezultatul: daca este mai mare decat 0 inseamna ca am primit 
+o cerere noua. Daca nu,scoatem socketul din multimea socketilor ascultati.
+	
+	In cazul in care am primit o cerere valida vom extrage urmatoarele informatii:
+comanda primita, url-ul (daca exista), adresa serverului.
+Dupa extragerea comenzii se verifica daca aceasta este o comanda valida (GET, POST, HEAD)
+si se va trimite clientului un mesaj de tipul: 400 Bad Request in caz contrar.
+Daca am primit comanda sub forma de cale relativa atunci url-ul nu este continut 
+complet in cerere, deci acesta va fi extras din campul Host: adresa_server.
+Daca am primit un url complet atunci acesta se parseaza pentru a obtine numele
+serverului.
+	
+	In continuare verificam daca cererea primita se afla in vectorul de cereri,
+caz in care se va citi continutul fisierului corespunzator si se va trimite
+clientului direct informatia citita, fara a mai stabili o conexiune catre
+serverul in cauza.
+	
+	Daca cererea primita este una noua se va apela functia gethostbyname si
+se va extrage ip-ul serverului din rezultatul acesteia. Se va crea o noua conexiune
+TCP cu serverul cerut pe baza ip-ului intors. Daca functia gethostbyname esueaza 
+se va instiinta clientul cu un mesaj de tipul "500 Internal Server Error"
+si se va incheia executia programului. Acest mesaj de eroare este intors
+si daca au loc erori la apelurile de socket sau connect. In cazul in care
+nu se extrage o adresa IP valida din rezultatul intors de gethostbyname se va
+afisa un mesaj de eroare corespunzator si se va incheia executia programului.
+	
+	Daca conexiunea cu serverul este stabilita cu succes se va face inca o
+bucla de primire mesaje in care se va receptiona raspunsul intors de server
+si se va trimite clientului. Daca raspunsul nu este marcat drept no-cache sau private
+si are un cod de eroare de tipul "200 OK" atunci se va salva in fisierul nou creat.
+Altfel, se va reseta indicele curent din vector pentru a se suprapune pozitia
+respectiva cu datele urmatorului fisier care va fi creat.
+Fisierele create nu sunt sterse din timpul executiei deoarece nu pot sa stiu cand
+le vom mai utiliza.
+
+Obs: fisierele au nume de tipul file_nrcrt.txt
+
+Makefile-ul contine regula de build pentru a crea executabilul httpproxy si o regula
+de clean care sterge executabilul si fisierele create.
